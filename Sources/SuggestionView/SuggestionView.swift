@@ -11,8 +11,8 @@ open class SuggestionView: UIView {
     Default value is `0.4`.
     */
     public var throttleTime: TimeInterval = 0.4
-    /// The maximum height of autocomplete view. Default value is `200.0`.
-    public var maximumHeight: CGFloat = 200.0
+    /// The maximum height of autocomplete view. Default value is `1000.0`.
+    public var maximumHeight: CGFloat = 1000.0
     /// A boolean value that determines whether the view should hide after a suggestion is selected. Default value is `true`.
     public var shouldHideAfterSelecting = true
     /** The attributes for the text suggestions.
@@ -39,7 +39,7 @@ open class SuggestionView: UIView {
      
     - Note: `textAttributes` will be ignored if this property is not `nil`
     */
-    public var autocompleteCell: SuggestionView.Type? {
+    public var autocompleteCell: SuggestionViewTableViewCell.Type? {
         didSet {
             guard let autocompleteCell = autocompleteCell else {
                 return
@@ -64,27 +64,22 @@ open class SuggestionView: UIView {
     private var elements = [String]() {
         didSet {
             tableView.reloadData()
-            height = tableView.contentSize.height
+            superview?.layoutIfNeeded()
+            tableView.scrollToTop(animated: true)
         }
     }
-    private var height: CGFloat = 0 {
+    
+    private var keyboardHeight: CGFloat = 0 {
         didSet {
-            guard height != oldValue else {
-                return
-            }
-
-            guard let superview = superview else {
-                heightConstraint?.constant = (height > maximumHeight) ? maximumHeight : height
-                return
-            }
-
-            superview.layoutIfNeeded()
-            UIView.animate(withDuration: 0.2) {
-                self.heightConstraint?.constant = (self.height > self.maximumHeight) ? self.maximumHeight : self.height
+            
+            guard let superview = superview else {return}
+            
+            UIView.animate(withDuration: 0.2){
                 superview.layoutIfNeeded()
             }
         }
     }
+
 
     // MARK: - Init
 
@@ -98,7 +93,6 @@ open class SuggestionView: UIView {
     */
     public override init(frame: CGRect) {
         super.init(frame: frame)
-
         commonInit()
     }
 
@@ -110,7 +104,6 @@ open class SuggestionView: UIView {
     */
     public required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
-
         commonInit()
     }
 
@@ -118,7 +111,14 @@ open class SuggestionView: UIView {
 
     private func commonInit() {
         addSubview(tableView)
+        attachTableView()
+    }
 
+    private func addKeyboardObserver(){
+        
+    }
+    private func attachTableView(){
+        tableView.backgroundColor = .clear
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: SuggestionView.cellIdentifier)
         tableView.dataSource = self
         tableView.delegate = self
@@ -126,12 +126,16 @@ open class SuggestionView: UIView {
         tableView.tableFooterView = UIView()
         tableView.separatorInset = .zero
         tableView.contentInset = .zero
-        tableView.bounces = false
+        tableView.bounces = true
     }
-
     private func setupConstraints() {
         guard let textField = textField else {
-            assertionFailure("Sanity check")
+            assertionFailure("no textfield found")
+            return
+        }
+        
+        guard let attachedSuperView  = superview else{
+            assertionFailure("no super view found")
             return
         }
 
@@ -144,14 +148,14 @@ open class SuggestionView: UIView {
         heightConstraint = heightAnchor.constraint(equalToConstant: 0)
 
         let constraints = [
+            leadingAnchor.constraint(equalTo: attachedSuperView.leadingAnchor),
+            trailingAnchor.constraint(equalTo: attachedSuperView.trailingAnchor),
+            topAnchor.constraint(equalTo: textField.bottomAnchor, constant: 12.5),
+            bottomAnchor.constraint(equalTo: attachedSuperView.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: trailingAnchor),
             tableView.topAnchor.constraint(equalTo: topAnchor),
-            tableView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            leadingAnchor.constraint(equalTo: textField.leadingAnchor),
-            trailingAnchor.constraint(equalTo: textField.trailingAnchor),
-            topAnchor.constraint(equalTo: textField.bottomAnchor, constant: 10.0),
-            heightConstraint!
+            tableView.heightAnchor.constraint(equalTo: heightAnchor, multiplier: 0.65)
         ]
 
         NSLayoutConstraint.activate(constraints)
@@ -178,7 +182,7 @@ open class SuggestionView: UIView {
     }
 
     @objc private func textFieldEditingEnded() {
-        height = 0
+        
     }
 }
 
@@ -247,7 +251,7 @@ extension SuggestionView: UITableViewDelegate {
         }
 
         if shouldHideAfterSelecting {
-            height = 0
+            
         }
         textField?.text = elements[indexPath.row]
         delegate?.autocompleteView(self, didSelect: elements[indexPath.row])
