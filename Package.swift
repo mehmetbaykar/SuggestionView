@@ -24,5 +24,8 @@ let package = Package(
         .testTarget(
             name: "SuggestionViewTests",
             dependencies: ["SuggestionView"]),
-    ]
+    ],
+    swiftLanguageVersions: [.v5]
 )
+
+package.platforms = [.iOS(SupportedPlatform.IOSVersion.v11)]
