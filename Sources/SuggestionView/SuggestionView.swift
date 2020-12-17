@@ -232,6 +232,7 @@ extension SuggestionView: UITableViewDataSource {
         guard autocompleteCell != nil, let customCell = cell as? SuggestionViewTableViewCell  else {
             cell.textLabel?.attributedText = NSAttributedString(string: text, attributes: textAttributes)
             cell.selectionStyle = .none
+            cell.backgroundColor = self.backgroundColor
 
             return cell
         }
