@@ -55,6 +55,12 @@ open class SuggestionView: UIView {
             tableView.rowHeight = rowHeight
         }
     }
+    
+    open override var backgroundColor: UIColor?{
+        didSet{
+            self.tableView.backgroundColor = backgroundColor
+        }
+    }
 
     // MARK: - Private Properties
 
@@ -68,6 +74,7 @@ open class SuggestionView: UIView {
             tableView.scrollToTop(animated: true)
         }
     }
+    
     
     private var keyboardHeight: CGFloat = 0 {
         didSet {
