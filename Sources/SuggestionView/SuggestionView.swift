@@ -1,5 +1,7 @@
 import UIKit
 
+fileprivate let SEARCH_BAR_TEXT_CLEANED = "searchBarTextCleaned"
+
 open class SuggestionView: UIView {
     // MARK: - Public Properties
     
@@ -81,6 +83,7 @@ open class SuggestionView: UIView {
     private func commonInit() {
         addSubview(tableView)
         attachTableView()
+        NotificationCenter.default.addObserver(self, selector: #selector(self.textFieldEditingChanged), name: NSNotification.Name(rawValue: SEARCH_BAR_TEXT_CLEANED), object: nil)
     }
     
     private func attachTableView(){
