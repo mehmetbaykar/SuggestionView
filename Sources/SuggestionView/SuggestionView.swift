@@ -150,10 +150,13 @@ open class SuggestionView: UIView {
     
     @objc private func textFieldEditingEnded() {
         self.popUpView(show: false)
+        self.tableView.reloadData()
+        self.elements.removeAll()
     }
     
     @objc private func textFieldEditingBegin() {
         self.popUpView(show: true)
+        
     }
 }
 // MARK: - UITableViewDataSource
@@ -180,8 +183,9 @@ extension SuggestionView: UITableViewDataSource {
         
         guard autocompleteCell != nil, let customCell = cell as? SuggestionViewTableViewCell  else {
             cell.textLabel?.attributedText = NSAttributedString(string: text, attributes: textAttributes)
-            cell.selectionStyle = .gray
+            cell.selectionStyle = .default
             cell.backgroundColor = self.backgroundColor
+            cell.separatorInset = UIEdgeInsets(top: 0.0, left: 1.0, bottom: 0, right: 0)
             
             return cell
         }
