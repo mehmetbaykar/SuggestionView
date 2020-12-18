@@ -2,54 +2,41 @@ import UIKit
 
 open class SuggestionView: UIView {
     // MARK: - Public Properties
-
+    
     public weak var dataSource: SuggestionViewDataSource?
     public weak var delegate: SuggestionViewDelegate?
-
-    /** The time interval responsible for regulating the rate of calling data source function.
-    If typing stops for a time interval greater than `throttleTime`, then the data source function will be called.
-    Default value is `0.4`.
-    */
+    
     public var throttleTime: TimeInterval = 0.4
-    /// The maximum height of autocomplete view. Default value is `1000.0`.
     public var maximumHeight: CGFloat = 1000.0
-    /// A boolean value that determines whether the view should hide after a suggestion is selected. Default value is `true`.
+    
     public var shouldHideAfterSelecting = true
-    /** The attributes for the text suggestions.
-     
-    - Note: This property will be ignored if `autocompleteCell` is not `nil`.
-    */
+    
     public var textAttributes: [NSAttributedString.Key: Any]?
-    /// The text field to which the autocomplete view will be attached.
+    
     public weak var textField: UITextField? {
         didSet {
             guard let textField = textField else {
                 return
             }
-
+            
             textField.addTarget(self, action: #selector(textFieldEditingChanged), for: .editingChanged)
             textField.addTarget(self, action: #selector(textFieldEditingEnded), for: .editingDidEnd)
-
+            
             setupConstraints()
         }
     }
-    /** A `LUAutocompleteTableViewCell` subclass that will be used to show a text suggestion.
-    Set your own in order to customise the appearance.
-    Default value is `nil`, which means the default one will be used.
-     
-    - Note: `textAttributes` will be ignored if this property is not `nil`
-    */
+    
     public var autocompleteCell: SuggestionViewTableViewCell.Type? {
         didSet {
             guard let autocompleteCell = autocompleteCell else {
                 return
             }
-
+            
             tableView.register(autocompleteCell, forCellReuseIdentifier: SuggestionView.cellIdentifier)
             tableView.reloadData()
         }
     }
-    /// The height of each row (that is, table cell) in the autocomplete table view. Default value is `40.0`.
+    
     public var rowHeight: CGFloat = 40.0 {
         didSet {
             tableView.rowHeight = rowHeight
@@ -61,9 +48,9 @@ open class SuggestionView: UIView {
             self.tableView.backgroundColor = backgroundColor
         }
     }
-
+    
     // MARK: - Private Properties
-
+    
     private let tableView = UITableView()
     private var heightConstraint: NSLayoutConstraint?
     private static let cellIdentifier = "AutocompleteCellIdentifier"
@@ -72,6 +59,11 @@ open class SuggestionView: UIView {
             tableView.reloadData()
             superview?.layoutIfNeeded()
             tableView.scrollToTop(animated: true)
+            if elements.count <= 0{
+                self.isHidden = true
+            }else{
+                self.isHidden = false
+            }
         }
     }
     
@@ -86,43 +78,29 @@ open class SuggestionView: UIView {
             }
         }
     }
-
-
+    
+    
     // MARK: - Init
-
-    /** Initializes and returns a table view object having the given frame and style.
-
-    - Parameters:
-        - frame: A rectangle specifying the initial location and size of the table view in its superview’s coordinates. The frame of the table view changes as table cells are added and deleted.
-        - style: A constant that specifies the style of the table view. See `UITableViewStyle` for descriptions of valid constants.
-
-    - Returns: Returns an initialized `UITableView` object, or `nil` if the object could not be successfully initialized.
-    */
     public override init(frame: CGRect) {
         super.init(frame: frame)
         commonInit()
     }
-
-    /** Returns an object initialized from data in a given unarchiver.
-
-    - Parameter coder: An unarchiver object.
     
-    - Retunrs: `self`, initialized using the data in *decoder*.
-    */
     public required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
         commonInit()
     }
-
+    
     // MARK: - Private Functions
-
+    
     private func commonInit() {
         addSubview(tableView)
         attachTableView()
+        addKeyboardObserver()
     }
-
+    
     private func addKeyboardObserver(){
-        
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillChangeFrame), name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
     }
     private func attachTableView(){
         tableView.backgroundColor = .clear
@@ -132,6 +110,7 @@ open class SuggestionView: UIView {
         tableView.rowHeight = rowHeight
         tableView.tableFooterView = UIView()
         tableView.separatorInset = .zero
+        tableView.separatorStyle = .singleLine
         tableView.contentInset = .zero
         tableView.bounces = true
     }
@@ -145,15 +124,15 @@ open class SuggestionView: UIView {
             assertionFailure("no super view found")
             return
         }
-
+        
         tableView.removeConstraints(tableView.constraints)
         removeConstraints(self.constraints)
-
+        
         tableView.translatesAutoresizingMaskIntoConstraints = false
         translatesAutoresizingMaskIntoConstraints = false
-
+        
         heightConstraint = heightAnchor.constraint(equalToConstant: 0)
-
+        
         let constraints = [
             leadingAnchor.constraint(equalTo: attachedSuperView.leadingAnchor),
             trailingAnchor.constraint(equalTo: attachedSuperView.trailingAnchor),
@@ -162,83 +141,75 @@ open class SuggestionView: UIView {
             tableView.leadingAnchor.constraint(equalTo: leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: trailingAnchor),
             tableView.topAnchor.constraint(equalTo: topAnchor),
-            tableView.heightAnchor.constraint(equalTo: heightAnchor, multiplier: 0.65)
+            tableView.heightAnchor.constraint(equalTo: heightAnchor)
         ]
-
+        
         NSLayoutConstraint.activate(constraints)
     }
-
+    
+    @objc func keyboardWillChangeFrame(_ notification: Notification) {
+        if let keyboardFrame: NSValue = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
+            self.keyboardHeight = keyboardFrame.cgRectValue.size.height
+        }
+    }
+    
     @objc private func textFieldEditingChanged() {
         NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(getElements), object: nil)
         perform(#selector(getElements), with: nil, afterDelay: throttleTime)
     }
-
+    
     @objc private func getElements() {
         guard let dataSource = dataSource else {
             return
         }
-
+        
         guard let text = textField?.text, !text.isEmpty else {
             elements.removeAll()
             return
         }
-
+        
         dataSource.autocompleteView(self, elementsFor: text) { [weak self] elements in
             self?.elements = elements
         }
     }
-
+    
     @objc private func textFieldEditingEnded() {
-        
+        self.isHidden = true
     }
 }
 
 // MARK: - UITableViewDataSource
 
 extension SuggestionView: UITableViewDataSource {
-    /** Tells the data source to return the number of rows in a given section of a table view.
-
-    - Parameters:
-        - tableView: The table-view object requesting this information.
-        - section: An index number identifying a section of `tableView`.
-
-    - Returns: The number of rows in `section`.
-    */
+    
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return !(textField?.text?.isEmpty ?? true) ? elements.count : 0
     }
-
-    /** Asks the data source for a cell to insert in a particular location of the table view.
-
-    - Parameters:
-        - tableView: A table-view object requesting the cell.
-        - indexPath: An index path locating a row in `tableView`.
-
-    - Returns: An object inheriting from `UITableViewCell` that the table view can use for the specified row. An assertion is raised if you return `nil`.
-    */
+    
+    
     public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: SuggestionView.cellIdentifier) else {
             assertionFailure("Cell shouldn't be nil")
             return UITableViewCell()
         }
-
+        
         guard indexPath.row < elements.count else {
             assertionFailure("Sanity check")
             return cell
         }
-
+        
         let text = elements[indexPath.row]
-
+        
         guard autocompleteCell != nil, let customCell = cell as? SuggestionViewTableViewCell  else {
             cell.textLabel?.attributedText = NSAttributedString(string: text, attributes: textAttributes)
             cell.selectionStyle = .none
             cell.backgroundColor = self.backgroundColor
-
+            
             return cell
         }
-
+        
         customCell.set(text: text)
-
+        
         return customCell
     }
 }
@@ -246,20 +217,15 @@ extension SuggestionView: UITableViewDataSource {
 // MARK: - UITableViewDelegate
 
 extension SuggestionView: UITableViewDelegate {
-    /** Tells the delegate that the specified row is now selected.
-
-    - Parameters:
-        - tableView: A table-view object informing the delegate about the new row selection.
-        - indexPath: An index path locating the new selected row in `tableView`.
-    */
+    
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         guard indexPath.row < elements.count else {
             assertionFailure("Sanity check")
             return
         }
-
+        
         if shouldHideAfterSelecting {
-            
+            self.isHidden = true
         }
         textField?.text = elements[indexPath.row]
         delegate?.autocompleteView(self, didSelect: elements[indexPath.row])
