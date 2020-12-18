@@ -7,7 +7,6 @@ open class SuggestionView: UIView {
     public weak var delegate: SuggestionViewDelegate?
     
     public var throttleTime: TimeInterval = 0.4
-    public var maximumHeight: CGFloat = 1000.0
     
     public var shouldHideAfterSelecting = true
     
@@ -18,7 +17,7 @@ open class SuggestionView: UIView {
             guard let textField = textField else {
                 return
             }
-            
+            textField.addTarget(self, action: #selector(textFieldEditingBegin), for: .editingDidBegin)
             textField.addTarget(self, action: #selector(textFieldEditingChanged), for: .editingChanged)
             textField.addTarget(self, action: #selector(textFieldEditingEnded), for: .editingDidEnd)
             
@@ -59,23 +58,6 @@ open class SuggestionView: UIView {
             tableView.reloadData()
             superview?.layoutIfNeeded()
             tableView.scrollToTop(animated: true)
-            if elements.count <= 0{
-                self.isHidden = true
-            }else{
-                self.isHidden = false
-            }
-        }
-    }
-    
-    
-    private var keyboardHeight: CGFloat = 0 {
-        didSet {
-            
-            guard let superview = superview else {return}
-            
-            UIView.animate(withDuration: 0.2){
-                superview.layoutIfNeeded()
-            }
         }
     }
     
@@ -96,12 +78,8 @@ open class SuggestionView: UIView {
     private func commonInit() {
         addSubview(tableView)
         attachTableView()
-        addKeyboardObserver()
     }
     
-    private func addKeyboardObserver(){
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillChangeFrame), name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
-    }
     private func attachTableView(){
         tableView.backgroundColor = .clear
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: SuggestionView.cellIdentifier)
@@ -111,8 +89,11 @@ open class SuggestionView: UIView {
         tableView.tableFooterView = UIView()
         tableView.separatorInset = .zero
         tableView.separatorStyle = .singleLine
+        tableView.separatorColor = .white
         tableView.contentInset = .zero
         tableView.bounces = true
+        tableView.allowsMultipleSelection = false
+        
     }
     private func setupConstraints() {
         guard let textField = textField else {
@@ -147,12 +128,6 @@ open class SuggestionView: UIView {
         NSLayoutConstraint.activate(constraints)
     }
     
-    @objc func keyboardWillChangeFrame(_ notification: Notification) {
-        if let keyboardFrame: NSValue = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
-            self.keyboardHeight = keyboardFrame.cgRectValue.size.height
-        }
-    }
-    
     @objc private func textFieldEditingChanged() {
         NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(getElements), object: nil)
         perform(#selector(getElements), with: nil, afterDelay: throttleTime)
@@ -174,10 +149,13 @@ open class SuggestionView: UIView {
     }
     
     @objc private func textFieldEditingEnded() {
-        self.isHidden = true
+        self.popUpView(show: false)
+    }
+    
+    @objc private func textFieldEditingBegin() {
+        self.popUpView(show: true)
     }
 }
-
 // MARK: - UITableViewDataSource
 
 extension SuggestionView: UITableViewDataSource {
@@ -202,7 +180,7 @@ extension SuggestionView: UITableViewDataSource {
         
         guard autocompleteCell != nil, let customCell = cell as? SuggestionViewTableViewCell  else {
             cell.textLabel?.attributedText = NSAttributedString(string: text, attributes: textAttributes)
-            cell.selectionStyle = .none
+            cell.selectionStyle = .gray
             cell.backgroundColor = self.backgroundColor
             
             return cell
