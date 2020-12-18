@@ -20,7 +20,7 @@ open class SuggestionView: UIView {
             textField.addTarget(self, action: #selector(textFieldEditingBegin), for: .editingDidBegin)
             textField.addTarget(self, action: #selector(textFieldEditingChanged), for: .editingChanged)
             textField.addTarget(self, action: #selector(textFieldEditingEnded), for: .editingDidEnd)
-            
+            textField.delegate = self
             setupConstraints()
         }
     }
@@ -71,6 +71,10 @@ open class SuggestionView: UIView {
     public required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
         commonInit()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     // MARK: - Private Functions
@@ -212,5 +216,12 @@ extension SuggestionView: UITableViewDelegate {
         }
         textField?.text = elements[indexPath.row]
         delegate?.autocompleteView(self, didSelect: elements[indexPath.row])
+    }
+}
+
+extension SuggestionView:UITextFieldDelegate{
+    public func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        self.getElements()
+        return true
     }
 }
