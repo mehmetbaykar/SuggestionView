@@ -156,6 +156,7 @@ open class SuggestionView: UIView {
     
     @objc private func textFieldEditingBegin() {
         self.popUpView(show: true)
+        self.textFieldEditingChanged()
         
     }
 }
@@ -207,7 +208,7 @@ extension SuggestionView: UITableViewDelegate {
         }
         
         if shouldHideAfterSelecting {
-            self.isHidden = true
+            self.popUpView(show: false)
         }
         textField?.text = elements[indexPath.row]
         delegate?.autocompleteView(self, didSelect: elements[indexPath.row])
