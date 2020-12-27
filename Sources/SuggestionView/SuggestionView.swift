@@ -26,13 +26,13 @@ open class SuggestionView: UIView {
         }
     }
     
-    public var autocompleteCell: SuggestionViewTableViewCell.Type? {
+    public var suggestionViewCell: SuggestionViewTableViewCell.Type? {
         didSet {
-            guard let autocompleteCell = autocompleteCell else {
+            guard let suggestionViewCell = suggestionViewCell else {
                 return
             }
             
-            tableView.register(autocompleteCell, forCellReuseIdentifier: SuggestionView.cellIdentifier)
+            tableView.register(suggestionViewCell, forCellReuseIdentifier: SuggestionView.cellIdentifier)
             tableView.reloadData()
         }
     }
@@ -53,7 +53,7 @@ open class SuggestionView: UIView {
     
     private let tableView = UITableView()
     private var heightConstraint: NSLayoutConstraint?
-    private static let cellIdentifier = "AutocompleteCellIdentifier"
+    private static let cellIdentifier = "SuggestionViewCellIdentifier"
     private var elements = [String]() {
         didSet {
             tableView.reloadData()
@@ -130,7 +130,7 @@ open class SuggestionView: UIView {
             tableView.topAnchor.constraint(equalTo: topAnchor),
             tableView.heightAnchor.constraint(equalTo: heightAnchor)
         ]
-        
+        self.isHidden = true
         NSLayoutConstraint.activate(constraints)
     }
     
@@ -149,7 +149,7 @@ open class SuggestionView: UIView {
             return
         }
         
-        dataSource.autocompleteView(self, elementsFor: text) { [weak self] elements in
+        dataSource.suggestionView(self, elementsFor: text) { [weak self] elements in
             self?.elements = elements
         }
     }
@@ -188,7 +188,7 @@ extension SuggestionView: UITableViewDataSource {
         
         let text = elements[indexPath.row]
         
-        guard autocompleteCell != nil, let customCell = cell as? SuggestionViewTableViewCell  else {
+        guard suggestionViewCell != nil, let customCell = cell as? SuggestionViewTableViewCell  else {
             cell.textLabel?.attributedText = NSAttributedString(string: text, attributes: textAttributes)
             cell.selectionStyle = .default
             cell.backgroundColor = self.backgroundColor
@@ -209,7 +209,7 @@ extension SuggestionView: UITableViewDelegate {
     
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         guard indexPath.row < elements.count else {
-            assertionFailure("Sanity check")
+            assertionFailure("Indexpath could not be smaller than the element's count")
             return
         }
         
@@ -217,6 +217,6 @@ extension SuggestionView: UITableViewDelegate {
             self.popUpView(show: false)
         }
         textField?.text = elements[indexPath.row]
-        delegate?.autocompleteView(self, didSelect: elements[indexPath.row])
+        delegate?.suggestionView(self, didSelect: elements[indexPath.row])
     }
 }
