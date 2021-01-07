@@ -123,7 +123,7 @@ open class SuggestionView: UIView {
         let constraints = [
             leadingAnchor.constraint(equalTo: attachedSuperView.leadingAnchor),
             trailingAnchor.constraint(equalTo: attachedSuperView.trailingAnchor),
-            topAnchor.constraint(equalTo: textField.bottomAnchor, constant: 12.5),
+            topAnchor.constraint(equalTo: textField.bottomAnchor, constant: 10.0),
             bottomAnchor.constraint(equalTo: attachedSuperView.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: trailingAnchor),
