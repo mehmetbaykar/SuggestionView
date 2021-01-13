@@ -132,6 +132,7 @@ open class SuggestionView: UIView {
         ]
         self.isHidden = true
         NSLayoutConstraint.activate(constraints)
+        attachedSuperView.bringSubviewToFront(attachedSuperView)
     }
     
     @objc private func textFieldEditingChanged() {
