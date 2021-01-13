@@ -1,8 +1,9 @@
 import UIKit
-
-
 extension UIView{
     func popUpView(show:Bool){
+        if let superView = superview{
+            superView.bringSubviewToFront(self)
+        }
         if show && self.isHidden{
             self.alpha = 0.0
             self.isHidden = false
